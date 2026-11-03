@@ -1,14 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Arrow } from "./arrow";
 import { site } from "@/lib/site";
 
-export function ContactForm({ enabled }: { enabled: boolean }) {
+export function ContactForm() {
+  const [enabled, setEnabled] = useState(false);
   const [status, setStatus] = useState<
     "idle" | "sending" | "success" | "error"
   >("idle");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    async function checkAvailability() {
+      try {
+        const response = await fetch("/api/enquiry/config", {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) return;
+        const config = await response.json();
+        if (!controller.signal.aborted) setEnabled(config?.enabled === true);
+      } catch {
+        // Keep the email fallback when availability cannot be confirmed.
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
+    void checkAvailability();
+    return () => {
+      controller.abort();
+      clearTimeout(timeout);
+    };
+  }, []);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -97,7 +125,7 @@ export function ContactForm({ enabled }: { enabled: boolean }) {
       </div>
       {!enabled && (
         <p id="form-note" className="form-note">
-          The enquiry form isn’t connected yet. For now, please{" "}
+          The enquiry form is currently unavailable. Please{" "}
           <a href={`mailto:${site.email}`}>email me directly</a>.
         </p>
       )}

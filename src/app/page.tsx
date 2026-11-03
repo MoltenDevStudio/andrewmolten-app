@@ -5,7 +5,6 @@ import { Spark } from "@/components/spark";
 import { ContactForm } from "@/components/contact-form";
 import { ProjectPreview } from "@/components/project-preview";
 import { projects, site } from "@/lib/site";
-import { configuredEndpoint } from "@/lib/enquiry";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -353,7 +352,7 @@ export default function Home() {
                 Happy to meet locally or chat over a call.
               </p>
             </div>
-            <ContactForm enabled={Boolean(configuredEndpoint())} />
+            <ContactForm />
           </div>
         </section>
       </main>

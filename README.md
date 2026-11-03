@@ -39,6 +39,15 @@ TEST_BASE_URL=http://localhost:3000 npm test
 
 The HTTP tests skip when `TEST_BASE_URL` is unset. No test sends email or contacts a real webhook.
 
+To check contact form availability in a browser, install a test browser once and run:
+
+```sh
+npx playwright-core install chromium
+TEST_BASE_URL=http://localhost:3000 npm run test:contact
+```
+
+Alternatively set `CHROMIUM_EXECUTABLE_PATH` to an installed Chromium executable. These tests cover pending, unavailable, failed, malformed, and timed-out configuration checks. For either HTTP or browser tests against a server configured with a receiver, set `TEST_ENQUIRY_ENABLED=true` in the test command; leave it unset for an unconfigured server. The browser tests never submit an enquiry.
+
 ## Hosting migration
 
 The previous `vercel.json` rewrote every URL to `/index.html`. That Vite SPA fallback is removed so Next.js can handle the homepage, API, and preview routes. The new file disables Git-triggered Vercel deployments only for `codex/transfer-nextjs-andrewmolten-app`; it does not override production framework settings, environment values, domains, or other branches. No deployment or merge is included.
@@ -79,7 +88,16 @@ The direct `mailto:` link is usable now. Until a valid receiver is configured, t
 
 3. Optionally set `CONTACT_FORM_TOKEN`. The server adds it as an `Authorization: Bearer …` header. Neither setting is exposed to the browser.
 4. The receiver must return a successful HTTP status **only after accepting the message for delivery**. Non-success responses and timeouts show an error with the email fallback.
-5. Restart the development server. Because the homepage is static, rebuild for production after changing configuration. Set these server environment variables in the chosen hosting environment before its build.
+5. Restart the development server after changing configuration. The client checks `/api/enquiry/config` on page load; this uncached server route returns only `{ "enabled": true | false }` based on the current server environment. Submission stays disabled with an email fallback until availability is confirmed, including when the check fails or times out. The homepage can remain static.
+
+On Vercel, set these as server environment variables for the intended deployment environment and redeploy to apply changed environment values. Do not use `NEXT_PUBLIC_` variables. For Docker, build the image without delivery configuration, then supply the variables when starting the container:
+
+```sh
+docker build -t andrewmolten-app .
+docker run --rm -p 3000:3000 --env-file /path/to/private-enquiry.env andrewmolten-app
+```
+
+The private environment file contains `CONTACT_FORM_ENDPOINT` and, if required, `CONTACT_FORM_TOKEN`. Keep it outside the repository. Restart/recreate the container with updated variables and reload the page to recheck availability; the image does not need rebuilding. The status reports configuration, not webhook health: delivery failures still show the existing submission error and email fallback.
 
 The route validates and trims fields, enforces a 32 KB request limit, checks request origin, includes a honeypot, refuses webhook redirects, and applies a ten-second delivery timeout. The optional website accepts only HTTP(S) URLs. It forwards data without logging or retaining enquiry contents. Use the receiving service’s spam/rate controls before enabling public submissions; no distributed rate-limit store or third-party form service has been added. End-to-end delivery remains unverified until a real receiver is supplied.
 
@@ -110,6 +128,7 @@ src/app/opengraph-image.tsx      Generated social sharing image
 src/app/sitemap.ts               Homepage-only sitemap
 src/app/robots.ts                Crawler configuration
 src/app/api/enquiry/route.ts     Server-side webhook integration
+src/app/api/enquiry/config/route.ts Runtime availability boolean (no secrets)
 src/app/previews/                Future isolated client concepts
 src/components/                 Small shared UI components
 src/lib/site.ts                  Verified identity and project asset slots

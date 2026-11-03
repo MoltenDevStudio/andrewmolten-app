@@ -5,6 +5,15 @@ import assert from "node:assert/strict";
 const base = process.env.TEST_BASE_URL;
 const options = { skip: !base };
 
+test("enquiry availability is uncached and exposes only a boolean", options, async () => {
+  const response = await fetch(`${base}/api/enquiry/config`);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.deepEqual(await response.json(), {
+    enabled: process.env.TEST_ENQUIRY_ENABLED === "true",
+  });
+});
+
 test(
   "homepage is indexable and has the correct identity and email fallback",
   options,
@@ -67,7 +76,7 @@ test(
       headers: { origin: "https://other.example" },
     });
     assert.equal(rejected.status, 403);
-    if (!process.env.CONTACT_FORM_ENDPOINT) {
+    if (process.env.TEST_ENQUIRY_ENABLED !== "true") {
       const unavailable = await fetch(`${base}/api/enquiry`, {
         method: "POST",
         headers: { origin: base },
