@@ -1,17 +1,13 @@
-# Node modules
-/node_modules
-
-# Logs
+node_modules/
+.next/
+out/
+.vercel/
+.env*
+!.env.example
+*.tsbuildinfo
+work/
+.DS_Store
+dist/
+coverage/
 *.log
-
-# SQLite DBs
 *.sqlite3
-
-# Build products
-/dist
-
-# Jest coverage report
-/coverage/*
-
-# Dotenv env settings
-.env

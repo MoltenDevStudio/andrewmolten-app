@@ -1,0 +1,10 @@
+.git
+node_modules
+.next
+out
+dist
+work
+.env*
+!.env.example
+*.log
+*.sqlite3
